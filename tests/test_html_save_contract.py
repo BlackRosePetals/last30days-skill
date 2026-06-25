@@ -27,6 +27,8 @@ def test_html_deliverable_is_artifact_first_not_full_markdown_repeat():
     assert "**HTML as the requested deliverable**" in text
     assert 'prose like "give it to me in HTML"' in text
     assert "the HTML artifact is the primary output" in text
+    assert "use the exact synthesis draft you prepared for" in text
+    assert "Do not paste it to chat first" in text
     assert "do **not** paste the full Markdown report back into chat" in text
     assert "The user asked for an HTML deliverable" in text
 

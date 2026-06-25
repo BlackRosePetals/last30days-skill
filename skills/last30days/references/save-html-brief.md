@@ -19,12 +19,15 @@ The contract has two modes:
 ```bash
 # 1. Write your synthesis prose VERBATIM to a temp file. The synthesis is the
 #    "What I learned:" prose label, the bold-lead-in paragraphs with their
-#    inline citations as you wrote them in chat, and the "KEY PATTERNS from
-#    the research:" numbered list. Do NOT include the badge or the engine
-#    footer in the temp file - the engine adds those when it renders the HTML.
-#    Use the EXACT text you just wrote in chat. Do not paraphrase, do not
-#    summarize, do not reorder. The HTML must read identically to the chat
-#    response in voice and citations.
+#    inline citations, and the "KEY PATTERNS from the research:" numbered list.
+#    Do NOT include the badge or the engine footer in the temp file - the engine
+#    adds those when it renders the HTML.
+#    - HTML-as-deliverable mode: use the exact synthesis draft you prepared for
+#      the artifact. Do not paste it to chat first.
+#    - Normal-report-plus-HTML mode: use the exact synthesis text you already
+#      wrote in chat.
+#    In both modes, do not paraphrase, summarize, or reorder. The HTML must read
+#    identically to the intended report in voice and citations.
 SYNTHESIS_FILE="/tmp/last30days-synthesis-${CLAUDE_SESSION_ID}.md"
 # >| not >: fixed path may already exist on a same-session re-run; a plain >
 # is refused under `set -o noclobber`.
