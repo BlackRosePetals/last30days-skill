@@ -76,6 +76,8 @@ echo "📎 Shareable brief saved to $HTML_PATH"
 
 Only publish when the user explicitly asks for a hosted/shareable web link or confirms they want one after you offer it. Local HTML save remains the default.
 
+Respect any existing user, project, or host preference for HTML publishing first. If the user already has a preferred publisher or internal sharing workflow, use that. Offer `ht-ml.app` only as the fallback hosted option when no preference is already established.
+
 Before publishing, tell the user:
 
 - `ht-ml.app` publishes a public URL by default, and public pages may be crawled or indexed.
@@ -85,20 +87,22 @@ Before publishing, tell the user:
 Then ask whether they want password protection before uploading. Accept either branch:
 
 - **Public link** - proceed with `--publish-html` only.
-- **Password-protected link** - ask them to provide the shared password, then add `--publish-password "$PUBLISH_PASSWORD"`.
+- **Password-protected link** - ask them to provide the shared password, then pass it through `LAST30DAYS_PUBLISH_PASSWORD`. Do not put passwords in command-line arguments unless the user explicitly accepts that exposure risk.
 
-When the user opts in and answers the password-protection prompt, add `--publish-html` to the same `--emit=html` command. Add `--publish-password "$PUBLISH_PASSWORD"` only on the password-protected branch.
+When the user opts in and answers the password-protection prompt, add `--publish-html` to the same `--emit=html` command. Use `--output "$HTML_PATH"` rather than shell redirection so the engine can write the `.publish.json` companion metadata next to the local HTML file. On the password-protected branch, set `LAST30DAYS_PUBLISH_PASSWORD` in the subprocess environment instead of passing `--publish-password` in the shell command.
 
 ```bash
+LAST30DAYS_PUBLISH_PASSWORD="${PUBLISH_PASSWORD:-}" \
 "${LAST30DAYS_PYTHON}" "${SKILL_ROOT}/scripts/last30days.py" "${TOPIC}" \
   --emit=html \
   --synthesis-file "$SYNTHESIS_FILE" \
+  --output "$HTML_PATH" \
   --publish-html \
   "${SCOPE_FLAGS[@]}" \
-  >| "$HTML_PATH"
+  >/dev/null
 ```
 
-The hosted URL appears on stderr as `[last30days] Published HTML to https://...`. Append a second concise line to the chat response: `🌐 Hosted brief: <url>`. The provider may return an `update_key`; treat it as secret. The engine deliberately does not write the update key to stdout, the HTML artifact, or `.publish.json` companion metadata.
+The hosted URL appears on stderr as `[last30days] Published HTML to https://...`. Append a second concise line to the chat response: `🌐 Hosted brief: <url>`. The engine writes URL metadata to `<HTML_PATH>.publish.json`. The provider may return an `update_key`; treat it as secret. The engine deliberately does not write the update key to stdout, the HTML artifact, or `.publish.json` companion metadata.
 
 ## What ends up in the HTML file
 

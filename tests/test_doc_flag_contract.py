@@ -31,15 +31,20 @@ def test_configuration_documents_new_safety_flags():
     assert "--publish-html" in text
     assert "--publish-password" in flags
     assert "--publish-password" in text
+    assert "LAST30DAYS_PUBLISH_PASSWORD" in text
 
 
 def test_html_publish_reference_prompts_for_password_choice():
     text = HTML_REFERENCE.read_text(encoding="utf-8")
     publish_section = text[text.index("## Optional hosted publishing"):text.index("## What ends up in the HTML file")]
+    assert "Respect any existing user, project, or host preference for HTML publishing first" in publish_section
+    assert "Offer `ht-ml.app` only as the fallback hosted option" in publish_section
     assert "ask whether they want password protection before uploading" in publish_section
     assert "**Public link** - proceed with `--publish-html` only" in publish_section
     assert "**Password-protected link** - ask them to provide the shared password" in publish_section
-    assert "Add `--publish-password \"$PUBLISH_PASSWORD\"` only on the password-protected branch" in publish_section
+    assert "LAST30DAYS_PUBLISH_PASSWORD" in publish_section
+    assert '--output "$HTML_PATH"' in publish_section
+    assert "<HTML_PATH>.publish.json" in publish_section
 
 
 def test_save_is_not_documented_as_python_cli_flag():

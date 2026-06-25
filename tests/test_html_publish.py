@@ -171,6 +171,66 @@ class HtmlPublishCliTests(unittest.TestCase):
             self.assertEqual("https://site.ht-ml.app", metadata["url"])
             self.assertNotIn("update_key", metadata)
 
+    def test_publish_uses_password_from_environment(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            output_path = Path(tmp) / "brief.html"
+            with mock.patch.object(cli.env, "get_config", return_value={}), \
+                 mock.patch.object(cli.pipeline, "diagnose", return_value=_diag()), \
+                 mock.patch.object(cli.pipeline, "run", return_value=_report()), \
+                 mock.patch.object(cli, "emit_output", return_value="<html>brief</html>"), \
+                 mock.patch("lib.html_publish.publish_html", return_value={
+                     "url": "https://site.ht-ml.app",
+                 }) as publish_mock, \
+                 mock.patch.object(sys, "argv", [
+                     "last30days.py",
+                     "OpenClaw",
+                     "--emit=html",
+                     "--output",
+                     str(output_path),
+                     "--publish-html",
+                 ]), \
+                 mock.patch.dict(os.environ, {
+                     "LAST30DAYS_SKIP_PREFLIGHT": "1",
+                     "LAST30DAYS_PUBLISH_PASSWORD": "share-pass",
+                 }, clear=False):
+                stdout = io.StringIO()
+                stderr = io.StringIO()
+                with redirect_stdout(stdout), redirect_stderr(stderr):
+                    rc = cli.main()
+
+            self.assertEqual(0, rc)
+            self.assertEqual("share-pass", publish_mock.call_args.kwargs["password"])
+
+    def test_publish_metadata_failure_still_reports_url(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            output_path = Path(tmp) / "brief.html"
+            with mock.patch.object(cli.env, "get_config", return_value={}), \
+                 mock.patch.object(cli.pipeline, "diagnose", return_value=_diag()), \
+                 mock.patch.object(cli.pipeline, "run", return_value=_report()), \
+                 mock.patch.object(cli, "emit_output", return_value="<html>brief</html>"), \
+                 mock.patch("lib.html_publish.publish_html", return_value={
+                     "url": "https://site.ht-ml.app",
+                     "site_id": "site_123",
+                 }), \
+                 mock.patch.object(cli, "_write_publish_metadata", side_effect=PermissionError("denied")), \
+                 mock.patch.object(sys, "argv", [
+                     "last30days.py",
+                     "OpenClaw",
+                     "--emit=html",
+                     "--output",
+                     str(output_path),
+                     "--publish-html",
+                 ]), \
+                 mock.patch.dict(os.environ, {"LAST30DAYS_SKIP_PREFLIGHT": "1"}, clear=False):
+                stdout = io.StringIO()
+                stderr = io.StringIO()
+                with redirect_stdout(stdout), redirect_stderr(stderr):
+                    rc = cli.main()
+
+            self.assertEqual(0, rc)
+            self.assertIn("Published HTML to https://site.ht-ml.app", stderr.getvalue())
+            self.assertIn("Publish metadata warning", stderr.getvalue())
+
     def test_publish_failure_preserves_local_output(self):
         with tempfile.TemporaryDirectory() as tmp:
             output_path = Path(tmp) / "brief.html"

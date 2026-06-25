@@ -181,9 +181,20 @@ def publish_rendered_html(
     from lib import html_publish
 
     result = html_publish.publish_html(rendered, password=password)
+    metadata_errors: list[str] = []
     for path in companion_paths or []:
-        _write_publish_metadata(path, result)
+        try:
+            _write_publish_metadata(path, result)
+        except OSError as exc:
+            metadata_errors.append(f"{path}: {exc}")
+    if metadata_errors:
+        result = dict(result)
+        result["_metadata_errors"] = metadata_errors
     return result
+
+
+def _publish_password_for_args(args: argparse.Namespace) -> str | None:
+    return (args.publish_password or os.environ.get("LAST30DAYS_PUBLISH_PASSWORD") or None)
 
 
 def emit_output(
@@ -329,7 +340,7 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--publish-html", action="store_true",
                         help="Publish --emit=html output to ht-ml.app (explicit opt-in; public by default)")
     parser.add_argument("--publish-password",
-                        help="Optional shared password for --publish-html")
+                        help="Optional shared password for --publish-html; prefer LAST30DAYS_PUBLISH_PASSWORD to avoid exposing secrets in process lists")
     parser.add_argument("--store", action="store_true", help="Persist ranked findings to the SQLite research store")
     parser.add_argument("--x-handle", help="X handle for targeted supplemental search")
     parser.add_argument("--x-related", help="Comma-separated related X handles (searched with lower weight)")
@@ -1267,10 +1278,12 @@ def main() -> int:
         try:
             publish_result = publish_rendered_html(
                 rendered,
-                password=args.publish_password,
+                password=_publish_password_for_args(args),
                 companion_paths=publish_companion_paths,
             )
             sys.stderr.write(f"[last30days] Published HTML to {publish_result['url']}\n")
+            for warning in publish_result.get("_metadata_errors") or []:
+                sys.stderr.write(f"[last30days] Publish metadata warning: {warning}\n")
             if publish_result.get("update_key"):
                 sys.stderr.write(
                     "[last30days] ht-ml.app returned an update key; not writing it "
